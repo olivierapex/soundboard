@@ -99,6 +99,12 @@ Harmless linker warnings caused by the Command Line Tools layout.
 
 A cloud-synced folder (Google Drive for desktop, for example) can hard-link files while it uploads them. SQLite, which stores the build database, fails when its files are hard-linked during a build, so `swift build` reports this error and exits with code 1 even though it prints `Build complete!`. `scripts/build-app.sh` therefore builds in `~/Library/Caches/Soundboard/build`, outside the synced folder. Remove a stale `.build` folder left by earlier runs.
 
+## Support
+
+Soundboard is free. If it is useful to you, you can buy me a coffee:
+
+[![Support me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/olivierapex)
+
 ## License
 
 [MIT](LICENSE)
