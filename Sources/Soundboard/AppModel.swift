@@ -37,6 +37,12 @@ final class AppModel {
     router.preview(clip(for: sound))
   }
 
+  /// Plays the trimmed range on BlackHole only and plays back what BlackHole receives.
+  func test(_ id: Sound.ID) {
+    guard let sound = library.sound(withID: id) else { return }
+    router.test(clip(for: sound))
+  }
+
   /// Stops whatever is playing.
   func stop() {
     router.stop()

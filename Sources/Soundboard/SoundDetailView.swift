@@ -4,7 +4,11 @@ struct SoundDetailView: View {
   @Environment(AppModel.self) private var model
   let sound: Sound
 
+  private nonisolated static let bucketCountAtFit = 600
+
   @State private var peaks: [Float] = []
+  @State private var viewport = WaveformViewport()
+  @State private var pinchStartViewport: WaveformViewport?
   @State private var name = ""
   @State private var isConfirmingDeletion = false
   @State private var peaksError: String?
@@ -19,19 +23,24 @@ struct SoundDetailView: View {
 
       WaveformView(
         peaks: peaks,
+        viewport: viewport,
         startFraction: sound.trimStart / sound.duration,
         endFraction: sound.trimEnd / sound.duration
       )
       .overlay {
         TrimOverlay(
           duration: sound.duration,
+          viewport: viewport,
           trimStart: startBinding,
           trimEnd: endBinding,
           isPlaying: model.router.playingSoundID == sound.id,
           playheadTime: { model.router.playheadTime },
           onTrimEnd: model.library.save)
       }
+      .background { ScrollWheelMonitor { viewport.scroll(by: -$0) } }
+      .gesture(magnify)
       .frame(height: 120)
+      WaveformZoomControls(viewport: $viewport)
       if let peaksError {
         Text(peaksError).foregroundStyle(.red).font(.caption)
       }
@@ -51,6 +60,16 @@ struct SoundDetailView: View {
       HStack {
         Button("Play", systemImage: "play.fill") { model.play(sound.id) }
         Button("Preview", systemImage: "headphones") { model.preview(sound.id) }
+        Button("Test", systemImage: "waveform.badge.mic") { model.test(sound.id) }
+          .disabled(!model.router.isBlackHoleAvailable)
+          .help(
+            model.router.isBlackHoleAvailable
+              ? "Plays the sound to the microphone and plays back what players hear, including your voice. Use headphones to avoid feedback."
+              : "Test needs \(AudioRouter.blackHoleName).")
+        if !model.router.isBlackHoleAvailable {
+          Text("Test needs \(AudioRouter.blackHoleName).").foregroundStyle(.secondary).font(
+            .caption)
+        }
         Spacer()
         Button("Delete", systemImage: "trash", role: .destructive) { isConfirmingDeletion = true }
       }
@@ -62,9 +81,11 @@ struct SoundDetailView: View {
       let url = model.library.url(for: sound)
       peaksError = nil
       let soundID = sound.id
+      let bucketCount = Self.bucketCountAtFit * Int(WaveformViewport.maximumZoom)
       do {
         let computed = try await Task.detached {
-          try WaveformPeaks.compute(url: url, bucketCount: 600)
+          try WaveformPeaks.compute(
+            url: url, bucketCount: bucketCount)
         }.value
         if !Task.isCancelled && soundID == sound.id { peaks = computed }
       } catch {
@@ -77,6 +98,16 @@ struct SoundDetailView: View {
     .confirmationDialog("Delete \(sound.name)?", isPresented: $isConfirmingDeletion) {
       Button("Delete", role: .destructive) { model.delete(sound.id) }
     }
+  }
+
+  private var magnify: some Gesture {
+    MagnifyGesture()
+      .onChanged { value in
+        let base = pinchStartViewport ?? viewport
+        pinchStartViewport = base
+        viewport = base.zoomed(by: value.magnification, anchor: value.startAnchor.x)
+      }
+      .onEnded { _ in pinchStartViewport = nil }
   }
 
   private var startBinding: Binding<Double> {

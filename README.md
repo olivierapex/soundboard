@@ -32,7 +32,9 @@ The script builds in release mode, assembles `build/Soundboard.app` from `Suppor
 1. Add sounds with the + button or by dropping audio files on the window. Files are copied to `~/Library/Application Support/Soundboard/Sounds/`, the library is `~/Library/Application Support/Soundboard/library.json`.
 2. Select a sound to rename it, trim it (drag the start and end bars on the waveform; a playhead follows playback), preview the trimmed range on your own output, record a shortcut or delete it.
 3. Play with the play button, the Play button of the detail view, or the shortcut. A new sound replaces the one playing. Stop ends it.
-4. In the game or Discord, select **BlackHole 2ch** as the microphone. Players hear your microphone and the sounds. You hear the sounds on the default output.
+4. Zoom into the waveform to place the trim bars precisely: pinch on the trackpad, or use the zoom buttons (up to 64 times) and **Fit** under the waveform. When zoomed, scroll horizontally on the waveform or use the scroll bar.
+5. **Test** plays the trimmed range to BlackHole only, and plays back what BlackHole receives (your microphone and the sound, as players hear them) on the default output, so you hear the result once. The listening runs only during the test and stops when the sound ends or Stop is pressed. It plays your own voice back, so use headphones to avoid feedback. The button is disabled without BlackHole.
+6. In the game or Discord, select **BlackHole 2ch** as the microphone. Players hear your microphone and the sounds. You hear the sounds on the default output.
 
 When the app is closed, the BlackHole microphone is silent: switch back to your real microphone.
 
@@ -45,6 +47,7 @@ Shortcuts are global (Carbon hot keys, no Accessibility permission) and can be s
 - Microphone engine: input node into a sink node, first channel only, read on the render thread by a sink node, into a lock-protected ring buffer (the render thread never waits for the lock).
 - Output engine: output device set to BlackHole 2ch, a source node reading the ring buffer, and a player node for clips, both into the main mixer (which converts sample rates).
 - Monitor engine: default output, started only while a sound plays.
+- Test: a second bridge (input device BlackHole 2ch, default output) that runs only during a test.
 - The ring buffer drops old samples when it grows too long and plays silence while it refills, which absorbs clock drift between the devices.
 - BlackHole is found by name through Core Audio, and a property listener re-detects it when devices change. Changes of the default input or output restart the passthrough. No timers and no polling.
 

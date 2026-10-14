@@ -18,6 +18,7 @@ final class AudioRouter {
   private(set) var errorMessage: String?
 
   @ObservationIgnored private let bridge = MicrophoneBridge()
+  @ObservationIgnored private let blackHoleListener = MicrophoneBridge()
   @ObservationIgnored private let monitorEngine = AVAudioEngine()
   @ObservationIgnored private let monitorPlayer: ClipPlayer
   @ObservationIgnored private var blackHoleID: AudioDeviceID?
@@ -25,6 +26,7 @@ final class AudioRouter {
   init() {
     monitorPlayer = ClipPlayer(engine: monitorEngine)
     bridge.onConfigurationChange = { [weak self] in self?.restartBridge() }
+    blackHoleListener.onConfigurationChange = { [weak self] in self?.blackHoleListener.stop() }
     AudioDevices.observe([kAudioHardwarePropertyDevices]) { [weak self] in
       self?.deviceListDidChange()
     }
@@ -34,11 +36,13 @@ final class AudioRouter {
     deviceListDidChange(force: true)
   }
 
-  /// The sound currently playing on the default output.
-  var playingSoundID: Sound.ID? { monitorPlayer.currentClip?.soundID }
+  /// The sound currently playing, on the default output or in a test.
+  var playingSoundID: Sound.ID? {
+    (monitorPlayer.currentClip ?? bridge.clipPlayer.currentClip)?.soundID
+  }
 
-  /// Seconds from the file start at the playback position on the default output.
-  var playheadTime: TimeInterval? { monitorPlayer.playheadTime }
+  /// Seconds from the file start at the playback position.
+  var playheadTime: TimeInterval? { monitorPlayer.playheadTime ?? bridge.clipPlayer.playheadTime }
 
   /// Asks for microphone access, then starts the passthrough if BlackHole is present.
   func start() async {
@@ -64,8 +68,26 @@ final class AudioRouter {
     play(on: monitorPlayer, clip: clip) { [monitorEngine] in monitorEngine.stop() }
   }
 
-  /// Stops the clip on every output.
+  /// Plays on BlackHole only and plays what BlackHole receives (microphone and sound) on the default output.
+  func test(_ clip: Clip) {
+    stop()
+    errorMessage = nil
+    guard let blackHoleID, bridge.isRunning else {
+      errorMessage = "The test needs the microphone passthrough to BlackHole."
+      return
+    }
+    do {
+      try blackHoleListener.start(inputDevice: blackHoleID)
+      try bridge.clipPlayer.play(clip) { [blackHoleListener] in blackHoleListener.stop() }
+    } catch {
+      blackHoleListener.stop()
+      errorMessage = error.localizedDescription
+    }
+  }
+
+  /// Stops the clip on every output and the test listening.
   func stop() {
+    blackHoleListener.stop()
     monitorPlayer.stop()
     monitorEngine.stop()
     bridge.clipPlayer.stop()
@@ -97,6 +119,7 @@ final class AudioRouter {
 
   /// Restarts the passthrough, which also retries after a failure.
   private func restartBridge() {
+    blackHoleListener.stop()
     bridge.stop()
     guard let blackHoleID, microphoneAccess == .granted else { return }
     do {

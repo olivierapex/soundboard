@@ -1,14 +1,15 @@
 import AVFoundation
 
 enum WaveformPeaks {
-  /// Returns `bucketCount` peak amplitudes between 0 and 1 for the whole file.
-  static func compute(url: URL, bucketCount: Int) throws -> [Float] {
+  /// Returns up to `bucketCount` peak amplitudes between 0 and 1 for the whole file, one per frame at most.
+  static func compute(url: URL, bucketCount requestedBucketCount: Int) throws -> [Float] {
     let file = try AVAudioFile(forReading: url)
     let totalFrames = Int(file.length)
     guard totalFrames > 0,
       let buffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: 65_536)
     else { return [] }
 
+    let bucketCount = min(requestedBucketCount, totalFrames)
     var peaks = [Float](repeating: 0, count: bucketCount)
     var framePosition = 0
     while framePosition < totalFrames {

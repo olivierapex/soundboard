@@ -3,6 +3,7 @@ import SwiftUI
 /// Draggable trim bars, shading outside the range, and the playhead, laid over a waveform.
 struct TrimOverlay: View {
   let duration: TimeInterval
+  let viewport: WaveformViewport
   @Binding var trimStart: TimeInterval
   @Binding var trimEnd: TimeInterval
   let isPlaying: Bool
@@ -32,7 +33,8 @@ struct TrimOverlay: View {
             if let time = playheadTime() {
               bar(
                 at: time, width: width, height: height, color: .primary,
-                labelOnTrailingSide: time < duration * 0.85, labelAtBottom: true)
+                labelOnTrailingSide: position(of: time, width: width) < width * 0.85,
+                labelAtBottom: true)
             }
           }
           .allowsHitTesting(false)
@@ -42,15 +44,22 @@ struct TrimOverlay: View {
     }
   }
 
+  /// The x position of a time in the visible part; it lies outside 0...width when the time is scrolled out of view.
   private func position(of time: TimeInterval, width: CGFloat) -> CGFloat {
-    duration > 0 ? CGFloat(time / duration) * width : 0
+    guard duration > 0 else { return 0 }
+    return CGFloat((time / duration - viewport.start) / viewport.visibleFraction) * width
+  }
+
+  private func time(at position: CGFloat, width: CGFloat) -> TimeInterval {
+    (viewport.start + Double(position / width) * viewport.visibleFraction) * duration
   }
 
   private func shade(from start: TimeInterval, to end: TimeInterval, width: CGFloat) -> some View {
-    let startX = position(of: start, width: width)
+    let startX = min(max(position(of: start, width: width), 0), width)
+    let endX = min(max(position(of: end, width: width), 0), width)
     return Rectangle()
       .fill(.black.opacity(0.35))
-      .frame(width: max(0, position(of: end, width: width) - startX))
+      .frame(width: endX - startX)
       .frame(maxWidth: .infinity, alignment: .leading)
       .offset(x: startX)
       .allowsHitTesting(false)
@@ -60,6 +69,8 @@ struct TrimOverlay: View {
     at time: TimeInterval, width: CGFloat, height: CGFloat, color: Color = .accentColor,
     labelOnTrailingSide: Bool, labelAtBottom: Bool = false
   ) -> some View {
+    let x = position(of: time, width: width)
+    let isInView = (-Self.hitWidth...(width + Self.hitWidth)).contains(x)
     let verticalAlignment: VerticalAlignment = labelAtBottom ? .bottom : .top
     let alignment = Alignment(
       horizontal: labelOnTrailingSide ? .leading : .trailing, vertical: verticalAlignment)
@@ -74,7 +85,9 @@ struct TrimOverlay: View {
       }
       .frame(width: Self.hitWidth, height: height)
       .contentShape(Rectangle())
-      .position(x: position(of: time, width: width), y: height / 2)
+      .position(x: x, y: height / 2)
+      .opacity(isInView ? 1 : 0)
+      .allowsHitTesting(isInView)
   }
 
   /// Reports the time under the pointer while dragging and saves when the drag ends.
@@ -82,7 +95,7 @@ struct TrimOverlay: View {
     DragGesture(minimumDistance: 0, coordinateSpace: .named(Self.coordinateSpaceName))
       .onChanged { value in
         guard width > 0 else { return }
-        update(Double(value.location.x / width) * duration)
+        update(time(at: value.location.x, width: width))
       }
       .onEnded { _ in onTrimEnd() }
   }

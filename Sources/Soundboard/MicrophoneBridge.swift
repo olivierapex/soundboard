@@ -1,7 +1,7 @@
 import AVFoundation
 import CoreAudio
 
-/// Passes the default microphone to an output device (BlackHole) where clips are mixed in.
+/// Passes an input device (the default microphone) to an output device (BlackHole) where clips are mixed in.
 @MainActor
 final class MicrophoneBridge {
   private let microphoneEngine = AVAudioEngine()
@@ -25,9 +25,11 @@ final class MicrophoneBridge {
     }
   }
 
-  /// Starts both engines; the microphone feeds the output device through the ring buffer.
-  func start(outputDevice: AudioDeviceID) throws {
+  /// Starts both engines; the input device feeds the output device through the ring buffer.
+  /// A nil device means the system default.
+  func start(inputDevice: AudioDeviceID? = nil, outputDevice: AudioDeviceID? = nil) throws {
     stop()
+    if let inputDevice { try microphoneEngine.inputNode.auAudioUnit.setDeviceID(inputDevice) }
     let inputNode = microphoneEngine.inputNode
     let microphoneFormat = inputNode.outputFormat(forBus: 0)
     guard microphoneFormat.sampleRate > 0, microphoneFormat.channelCount > 0 else {
@@ -40,7 +42,7 @@ final class MicrophoneBridge {
     microphoneEngine.connect(inputNode, to: sinkNode, format: microphoneFormat)
     self.sinkNode = sinkNode
 
-    try outputEngine.outputNode.auAudioUnit.setDeviceID(outputDevice)
+    if let outputDevice { try outputEngine.outputNode.auAudioUnit.setDeviceID(outputDevice) }
     let sourceNode = Self.sourceNode(
       readingFrom: ringBuffer,
       format: AVAudioFormat(standardFormatWithSampleRate: microphoneFormat.sampleRate, channels: 1)!
