@@ -30,7 +30,7 @@ The script builds in release mode, assembles `build/Soundboard.app` from `Suppor
 ## Usage
 
 1. Add sounds with the + button or by dropping audio files on the window. Files are copied to `~/Library/Application Support/Soundboard/Sounds/`, the library is `~/Library/Application Support/Soundboard/library.json`.
-2. Select a sound to rename it, trim it (start and end sliders over the waveform), preview the trimmed range on your own output, record a shortcut or delete it.
+2. Select a sound to rename it, trim it (drag the start and end bars on the waveform; a playhead follows playback), preview the trimmed range on your own output, record a shortcut or delete it.
 3. Play with the play button, the Play button of the detail view, or the shortcut. A new sound replaces the one playing. Stop ends it.
 4. In the game or Discord, select **BlackHole 2ch** as the microphone. Players hear your microphone and the sounds. You hear the sounds on the default output.
 

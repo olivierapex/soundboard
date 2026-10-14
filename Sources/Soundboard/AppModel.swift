@@ -67,6 +67,7 @@ final class AppModel {
 
   /// Builds the trimmed clip of a sound.
   private func clip(for sound: Sound) -> Clip {
-    Clip(url: library.url(for: sound), start: sound.trimStart, end: sound.trimEnd)
+    Clip(
+      soundID: sound.id, url: library.url(for: sound), start: sound.trimStart, end: sound.trimEnd)
   }
 }

@@ -10,8 +10,6 @@ struct SoundDetailView: View {
   @State private var peaksError: String?
   @FocusState private var isNameFocused: Bool
 
-  private let minimumTrimLength = 0.01
-
   var body: some View {
     Form {
       TextField("Name", text: $name)
@@ -24,23 +22,18 @@ struct SoundDetailView: View {
         startFraction: sound.trimStart / sound.duration,
         endFraction: sound.trimEnd / sound.duration
       )
+      .overlay {
+        TrimOverlay(
+          duration: sound.duration,
+          trimStart: startBinding,
+          trimEnd: endBinding,
+          isPlaying: model.router.playingSoundID == sound.id,
+          playheadTime: { model.router.playheadTime },
+          onTrimEnd: model.library.save)
+      }
       .frame(height: 120)
       if let peaksError {
         Text(peaksError).foregroundStyle(.red).font(.caption)
-      }
-
-      LabeledContent("Start") {
-        Slider(
-          value: startBinding, in: 0...max(0, sound.trimEnd - minimumTrimLength),
-          onEditingChanged: saveWhenDone)
-        Text(sound.trimStart, format: .number.precision(.fractionLength(2))).monospacedDigit()
-      }
-      LabeledContent("End") {
-        Slider(
-          value: endBinding,
-          in: min(sound.duration, sound.trimStart + minimumTrimLength)...sound.duration,
-          onEditingChanged: saveWhenDone)
-        Text(sound.trimEnd, format: .number.precision(.fractionLength(2))).monospacedDigit()
       }
 
       LabeledContent("Shortcut") {
@@ -103,10 +96,5 @@ struct SoundDetailView: View {
   /// Saves the name if it changed.
   private func commitName() {
     if name != sound.name { model.library.rename(sound.id, to: name) }
-  }
-
-  /// Persists the trim once the slider is released.
-  private func saveWhenDone(isEditing: Bool) {
-    if !isEditing { model.library.save() }
   }
 }

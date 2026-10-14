@@ -1,6 +1,7 @@
 import AVFoundation
 
 struct Clip {
+  let soundID: Sound.ID
   let url: URL
   let start: TimeInterval
   let end: TimeInterval
@@ -20,10 +21,12 @@ enum AudioError: LocalizedError {
 
 /// Plays one clip at a time on an engine, replacing the previous one.
 @MainActor
+@Observable
 final class ClipPlayer {
-  private let engine: AVAudioEngine
-  private var node: AVAudioPlayerNode?
-  private var generation = 0
+  @ObservationIgnored private let engine: AVAudioEngine
+  @ObservationIgnored private var node: AVAudioPlayerNode?
+  @ObservationIgnored private var generation = 0
+  private(set) var currentClip: Clip?
 
   init(engine: AVAudioEngine) {
     self.engine = engine
@@ -46,6 +49,7 @@ final class ClipPlayer {
     generation += 1
     let currentGeneration = generation
     node.play()
+    currentClip = clip
     Task {
       await node.scheduleSegment(
         file,
@@ -61,9 +65,19 @@ final class ClipPlayer {
     }
   }
 
+  /// Seconds from the file start at the current playback position, or nil when nothing plays.
+  var playheadTime: TimeInterval? {
+    guard let node, let currentClip, let renderTime = node.lastRenderTime,
+      let playerTime = node.playerTime(forNodeTime: renderTime)
+    else { return nil }
+    let elapsed = max(0, Double(playerTime.sampleTime) / playerTime.sampleRate)
+    return min(currentClip.end, currentClip.start + elapsed)
+  }
+
   /// Stops the current clip and detaches its player node.
   func stop() {
     generation += 1
+    currentClip = nil
     guard let node else { return }
     node.stop()
     engine.detach(node)

@@ -34,6 +34,12 @@ final class AudioRouter {
     deviceListDidChange(force: true)
   }
 
+  /// The sound currently playing on the default output.
+  var playingSoundID: Sound.ID? { monitorPlayer.currentClip?.soundID }
+
+  /// Seconds from the file start at the playback position on the default output.
+  var playheadTime: TimeInterval? { monitorPlayer.playheadTime }
+
   /// Asks for microphone access, then starts the passthrough if BlackHole is present.
   func start() async {
     let granted = await AVCaptureDevice.requestAccess(for: .audio)
