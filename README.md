@@ -80,4 +80,4 @@ Harmless linker warnings caused by the Command Line Tools layout.
 
 ### `accessing build database ... disk I/O error`
 
-Seen when `swift build` ran inside a restricted sandbox: the build is complete but the exit code is 1. Run the script from a normal terminal, or pass another location, for example `scripts/build-app.sh --scratch-path /tmp/soundboard-build`.
+Google Drive for desktop syncs `~/data` and hard-links files that it uploads (`~/data/.tmp.driveupload`). SQLite, which stores the build database, fails when its files are hard-linked during a build, so `swift build` reports this error and exits with code 1 even though it prints `Build complete!`. `scripts/build-app.sh` therefore builds in `~/Library/Caches/Soundboard/build`, outside the synced folder. Remove a stale `.build` folder left by earlier runs.
