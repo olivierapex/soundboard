@@ -20,21 +20,36 @@ A free, open-source macOS soundboard, like Soundpad on Windows: play sounds into
 
 ## Requirements
 
-- macOS 14 or later.
-- Command Line Tools (Xcode is not required).
+- macOS 14 or later, on Apple silicon or Intel.
 - [BlackHole 2ch](https://github.com/ExistentialAudio/BlackHole). Without it the app still plays sounds locally and shows a banner.
+- To build from source only: Command Line Tools (Xcode is not required).
 
 ## Install
 
-1. Install BlackHole. The installer asks for the admin password:
+First install BlackHole. The installer asks for the admin password:
 
-   ```bash
-   brew install --cask blackhole-2ch
-   ```
+```bash
+brew install --cask blackhole-2ch
+```
 
-   A reboot may be needed, or run `sudo killall coreaudiod` to reload the audio service.
+A reboot may be needed, or run `sudo killall coreaudiod` to reload the audio service.
 
-2. Clone and build the app:
+### Download
+
+1. Download `Soundboard-<version>.zip` from the [latest release](https://github.com/olivierapex/soundboard/releases/latest) and open it.
+2. Move `Soundboard.app` to `/Applications`.
+3. Open the app. The app is not notarized by Apple, so macOS refuses it the first time and says it cannot verify that the app is free of malware. Click **Done**, then open **System Settings** > **Privacy & Security**, scroll to **Security** and click **Open Anyway** next to the Soundboard message. Confirm with your password. macOS remembers the choice.
+4. Grant microphone access when macOS asks.
+
+Instead of step 3, you can remove the download quarantine in Terminal:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Soundboard.app
+```
+
+### Build from source
+
+1. Clone and build the app:
 
    ```bash
    git clone https://github.com/olivierapex/soundboard.git
@@ -42,8 +57,10 @@ A free, open-source macOS soundboard, like Soundpad on Windows: play sounds into
    scripts/build-app.sh
    ```
 
-3. Copy `build/Soundboard.app` to `/Applications`.
-4. Start the app and grant microphone access when macOS asks.
+2. Copy `build/Soundboard.app` to `/Applications`.
+3. Start the app and grant microphone access when macOS asks.
+
+`scripts/package-app.sh` builds the app and packs it into `build/Soundboard-<version>.zip`, the file attached to each release.
 
 ## Usage
 
@@ -79,7 +96,11 @@ The installer of BlackHole 0.7.1 can fail its signature verification. See [Exist
 tccutil reset Microphone io.github.olivierapex.soundboard
 ```
 
-Then start the app again to get the prompt. Rebuilding changes the ad-hoc signature, so macOS may ask again.
+Then start the app again to get the prompt. Rebuilding or updating changes the ad-hoc signature, so macOS may ask again.
+
+### macOS cannot verify that Soundboard is free of malware
+
+The release is signed ad hoc, not with an Apple Developer ID, and is not notarized, so Gatekeeper blocks it on first launch. Allow it once with **Open Anyway** in **System Settings** > **Privacy & Security**, or remove the quarantine attribute with `xattr`. See [Download](#download).
 
 ### A shortcut does not fire
 
