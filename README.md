@@ -2,7 +2,7 @@
 
 A free, open-source macOS soundboard, like Soundpad on Windows: play sounds into your microphone in games and Discord.
 
-[![Support me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/olivierapex)
+[![Buy me a coffee](https://img.shields.io/badge/Buy_me_a_coffee-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/olivierapex)
 
 ![Soundboard](docs/screenshot.png)
 
