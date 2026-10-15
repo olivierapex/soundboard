@@ -12,12 +12,18 @@ export SDKROOT="${SDKROOT:-/Library/Developer/CommandLineTools/SDKs/MacOSX26.sdk
 # The build database is SQLite, which fails when Google Drive hard-links its files while syncing ~/data. Build outside the synced folder.
 scratch_path="${HOME}/Library/Caches/Soundboard/build"
 
-swift build -c release --scratch-path "${scratch_path}" "$@"
+architectures=(arm64 x86_64)
+binaries=()
+for architecture in "${architectures[@]}"; do
+  arguments=(-c release --triple "${architecture}-apple-macosx14.0" --scratch-path "${scratch_path}/${architecture}" "$@")
+  swift build "${arguments[@]}"
+  binaries+=("$(swift build "${arguments[@]}" --show-bin-path)/Soundboard")
+done
 
 application="${root}/build/Soundboard.app"
 rm -rf "${application}"
 mkdir -p "${application}/Contents/MacOS"
-cp "$(swift build -c release --scratch-path "${scratch_path}" "$@" --show-bin-path)/Soundboard" "${application}/Contents/MacOS/Soundboard"
+lipo -create -output "${application}/Contents/MacOS/Soundboard" "${binaries[@]}"
 cp "${root}/Support/Info.plist" "${application}/Contents/Info.plist"
 
 codesign --force --sign - "${application}"
